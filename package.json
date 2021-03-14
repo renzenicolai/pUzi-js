@@ -1,0 +1,23 @@
+{
+  "name": "puzi.js",
+  "version": "1.0.0",
+  "description": "Proficient UZI pass reader in Javascript",
+  "main": "uzireader.js",
+  "scripts": {
+    "test": "node --trace-warnings node_modules/mocha/bin/mocha"
+  },
+  "keywords": [
+    "puzi",
+    "uzipas",
+    "uzi"
+  ],
+  "author": "Renze Nicolai",
+  "license": "EUPL-1.2",
+  "dependencies": {
+    "node-forge": "^0.10.0"
+  },
+  "devDependencies": {
+    "chai": "^4.3.4",
+    "mocha": "^8.3.2"
+  }
+}
