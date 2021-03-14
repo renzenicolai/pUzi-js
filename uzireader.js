@@ -67,6 +67,13 @@ class UziPassUser {
                 } else if (attribute.name === "givenName") {
                     givenName = attribute.value;
                 }
+            } else { // Attribute without a name, unrecognized OID
+                // Workaround that's needed until Forge PR #855 is merged
+                if (attribute.type === "2.5.4.4") {
+                    surname = attribute.value;
+                } else if (attribute.type === "2.5.4.42") {
+                    givenName = attribute.value;
+                }
             }
             if (givenName && surname) {
                 return {givenName: givenName, surname: surname};
