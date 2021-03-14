@@ -58,7 +58,7 @@ describe('UziReader', () => {
     it("test_check_cert_without_ia5_string", () => {
         expect(() => {
             checkCert("mock-004-othername-without-ia5string.cert");
-        }).to.not.throw();
+        }).to.throw();
     });
 
     it("test_check_cert_incorrect_san_data", () => {
@@ -77,28 +77,28 @@ describe('UziReader', () => {
         let cert = readCert("mock-011-correct.cert");
         let data = new uzireader.UziPassUser(success, cert);
         expect(data.AgbCode).to.equal("00000000");
-        expect(data.self.CardType).to.equal("N")
-        expect(data.givenName).to.equal("john")
-        expect(data.OidCa).to.equal("2.16.528.1.1003.1.3.5.5.2")
-        expect(data.Role).to.equal("30.015")
-        expect(data.SubscriberNumber).to.equal("90000111")
-        expect(data.surName).to.equal("doe-12345678")
-        expect(data.UziNumber).to.equal("12345678")
-        expect(data.UziVersion).to.equal("1")
+        expect(data.CardType).to.equal("N");
+        expect(data.givenName).to.equal("john");
+        expect(data.OidCa).to.equal("2.16.528.1.1003.1.3.5.5.2");
+        expect(data.Role).to.equal("30.015");
+        expect(data.SubscriberNumber).to.equal("90000111");
+        expect(data.surName).to.equal("doe-12345678");
+        expect(data.UziNumber).to.equal("12345678");
+        expect(data.UziVersion).to.equal("1");
     });
 
     it("test_check_valid_admin_cert", () => {
         let cert = readCert("mock-012-correct-admin.cert");
         let data = new uzireader.UziPassUser(success, cert);
 
-        expect(data.AgbCode).to.equal("00000000")
-        expect(data.CardType).to.equal("N")
-        expect(data.givenName).to.equal("john")
-        expect(data.OidCa).to.equal("2.16.528.1.1003.1.3.5.5.2")
-        expect(data.Role).to.equal("01.015")
-        expect(data.SubscriberNumber).to.equal("90000111")
-        expect(data.surName).to.equal("doe-11111111")
-        expect(data.UziNumber).to.equal("11111111")
-        expect(data.UziVersion).to.equal("1")
+        expect(data.AgbCode).to.equal("00000000");
+        expect(data.CardType).to.equal("N");
+        expect(data.givenName).to.equal("john");
+        expect(data.OidCa).to.equal("2.16.528.1.1003.1.3.5.5.2");
+        expect(data.Role).to.equal("01.015");
+        expect(data.SubscriberNumber).to.equal("90000111");
+        expect(data.surName).to.equal("doe-11111111");
+        expect(data.UziNumber).to.equal("11111111");
+        expect(data.UziVersion).to.equal("1");
     });
 });

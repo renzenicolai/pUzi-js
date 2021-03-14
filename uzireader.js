@@ -2,6 +2,7 @@
 
 const forge = require("node-forge");
 const pki = forge.pki;
+const asn1 = forge.asn1;
 
 class UziPassUser {
     /*
@@ -22,6 +23,7 @@ class UziPassUser {
      */
     
     OID_IA5STRING = "2.5.5.5"  // see https://oidref.com/2.5.5.5
+    ALTNAME_OTHERNAME_TYPE = 0
     
     constructor(verify="failed", cert=null) {
         /*
@@ -48,19 +50,52 @@ class UziPassUser {
     }
     
     _update(data) {
-        for (key in data) {
+        for (let key in data) {
             this[key] = data[key];
         }
     }
     
-    _getName(rdnSequence) {
-        // Finds and returns the surName, and givenName
-        let givenName = rdnSequence.getField("givenName");
-        let surName = rdnSequence.getField("surname");
-        if (givenName && surName) {
-            return {givenName: givenName.value, surName: surName.value};
+    _getName(subject) {
+        // Finds and returns the surname, and givenName
+        let givenName = null;
+        let surname = null
+        for (let key in subject.attributes) {
+            let attribute = subject.attributes[key];
+            if (typeof attribute.name === "string") {
+                if (attribute.name === "surname") {
+                    surname = attribute.value;
+                } else if (attribute.name === "givenName") {
+                    givenName = attribute.value;
+                }
+            }
+            if (givenName && surname) {
+                return {givenName: givenName, surname: surname};
+            }
         }
         throw new UziException("No surname / givenName found");
+    }
+    
+    _findSubjectAltName(altName) {
+        if (altName.type !== this.ALTNAME_OTHERNAME_TYPE) {
+            return null;
+        }
+        let result = null;
+        for (let key in altName.value) {
+            let value = altName.value[key];
+            if (Array.isArray(value.value) && value.type === this.ALTNAME_OTHERNAME_TYPE) {
+                result = this._findSubjectAltName(value);
+                if (result) {
+                    break;
+                }
+            } else if (typeof value.value === "string") {
+                if (value.type === asn1.Type.IA5STRING) {
+                    result = value.value;
+                    break;
+                }
+            }
+            
+        }
+        return result;
     }
     
     _getData() {
@@ -69,54 +104,57 @@ class UziPassUser {
             throw new UziException("No subject rdnSequence");
         }
 
-        const {givenName, surName} = this._getName(this.cert.subject);
+        const {givenName, surname} = this._getName(this.cert.subject);
 
         let extension = null;
-        for (extensionKey in this.cert.extensions) {
-            let currExtension = this.cert.extensions[extensionKey];
-            if (extension.oid._name === "subjectAltName") {
-                extension = currExtension;
+        for (let key in this.cert.extensions) {
+            if (this.cert.extensions[key].name === "subjectAltName") {
+                extension = this.cert.extensions[key];
                 break;
             }
         }
+        
+        if (extension === null) {
+            throw new UziException("No valid UZI data found");
+        }
 
-        for (key in extension.value) {
-            value = extension.value[key]
-                if ((type(value) !== x509.general_name.OtherName) ||
-                    (value.type_id.dotted_string !== this.OID_IA5STRING)) {
-                    continue;
-                }
+        let subjectAltName = null;
+        for (let key in extension.altNames) {
+            let altName = extension.altNames[key];
+            subjectAltName = this._findSubjectAltName(altName);
+            if (subjectAltName) {
+                break;
+            }
+        }
+        
+        if (subjectAltName !== null) {
+            /* Reference page 60
+                * 
+                * [0] OID CA
+                * [1] UZI Version
+                * [2] UZI number
+                * [3] Card type
+                * [4] Subscriber number
+                * [5] Role (reference page 89)
+                * [6] AGB code
+                */
 
-                subjectAltName = value.value.decode("ascii")
+            let data = subjectAltName.split("-");
+            if (data.length < 6) {
+                throw new UziException("Incorrect SAN found");
+            }
 
-                /* Reference page 60
-                 * 
-                 * [0] OID CA
-                 * [1] UZI Version
-                 * [2] UZI number
-                 * [3] Card type
-                 * [4] Subscriber number
-                 * [5] Role (reference page 89)
-                 * [6] AGB code
-                 */
-
-                data = subjectAltName.split("-");
-                if (data.length < 6) {
-                    throw new UziException("Incorrect SAN found");
-                }
-                data[0] = data[0].split("?", 1)[1]
-
-                return {
-                    "givenName": givenName,
-                    "surName": surName,
-                    "OidCa": data[0],
-                    "UziVersion": data[1],
-                    "UziNumber": data[2],
-                    "CardType": data[3],
-                    "SubscriberNumber": data[4],
-                    "Role": data[5],
-                    "AgbCode": data[6],
-                }
+            return {
+                "givenName": givenName,
+                "surName": surname,
+                "OidCa": data[0],
+                "UziVersion": data[1],
+                "UziNumber": data[2],
+                "CardType": data[3],
+                "SubscriberNumber": data[4],
+                "Role": data[5],
+                "AgbCode": data[6],
+            }
         }
         throw new UziException("No valid UZI data found");
     }
